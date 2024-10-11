@@ -1,19 +1,24 @@
+import java.util.ArrayList;
+
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import CalculateLogic.*;
+
 public class InputField extends JTextField {
     String expresion = "";
     InputField(){
         super();
     }
-    public void AddPart(String part){
-        if(part == "C" || part == "CE"){
-
-        }else{
-            
+    public void AddPart(String part) throws Exception{
+        if(part == "C"){
+            expresion = "";
+        }else if(part == "CE"){
+            ArrayList<Token> tokens = Tokenizer.Tokenize(expresion+ "    ");
+            double value = Parser.Compute(tokens);
+            expresion = Double.toString(value);
         }
-        expresion += part;
+        else{
+            expresion += part;
+        }
         setText(expresion);
     }
 }

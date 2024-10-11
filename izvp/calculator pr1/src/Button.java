@@ -1,5 +1,5 @@
 import javax.swing.*;
-import java.awt.*;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 public class Button extends JButton{
@@ -13,7 +13,12 @@ public class Button extends JButton{
         this.inputField = inputField;
         addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e){
-                inputField.AddPart(value);
+                try {
+                    inputField.AddPart(value);
+                } catch (Exception e1) {
+                    //TODO: exeptions
+                    e1.printStackTrace();
+                }
             }
         });
     }
