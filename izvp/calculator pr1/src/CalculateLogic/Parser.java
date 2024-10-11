@@ -6,15 +6,15 @@ public class Parser {
     static int curentToken = 0;
     private static int GetPrecedence(Token current){
         switch (current.getType()) {
-            case TokenType.PLUS:
-            case TokenType.MINUS:  
+            case PLUS:
+            case MINUS:  
                 return 1;
 
-            case TokenType.MULTY:
-            case TokenType.DIVISION: 
+            case MULTY:
+            case DIVISION: 
                 return 2;
 
-            case TokenType.POWER:
+            case POWER:
                 return 3;
 
             default:
@@ -22,7 +22,7 @@ public class Parser {
         }
     }
 
-    static double ComputeOperation(Token current, double lhs, double rhs){
+    static double ComputeOperation(Token current, double lhs, double rhs) throws Exception{
         if(current.getType() == TokenType.PLUS){
             return lhs + rhs;
         }
@@ -33,7 +33,12 @@ public class Parser {
             return lhs * rhs;
         }
         else if(current.getType() == TokenType.DIVISION){
-            return lhs / rhs;
+            try{
+                return lhs / rhs;
+            }
+            catch(ArithmeticException e){
+                throw new Exception("Division by zero!");
+            }
         }
         else if(current.getType() == TokenType.POWER){
             return Math.pow(lhs, rhs);
@@ -73,7 +78,7 @@ public class Parser {
             curentToken++;
             double value = ComputeExpresion(1, tokens);
             if(tokens.get(curentToken).getType() != TokenType.RIGHT_BRACKET){
-                throw new Exception("there isn't right bracket");
+                throw new Exception("There no right bracket!");
             }
             curentToken++;
             return value;
@@ -88,7 +93,19 @@ public class Parser {
         }
         else if(curent.getType() == TokenType.SQRT){
             curentToken++;
-            return Math.sqrt(ComputeExpresion(1, tokens));
+            try{
+
+            Double value = Math.sqrt(ComputeExpresion(1, tokens));
+            return value;
+            }
+            catch(ArithmeticException e){
+                throw new Exception("sqrt of negative number");
+            }
+            
+        }
+        else if(curent.getType() == TokenType.PI){
+            curentToken++;
+            return Math.PI;
         }
         curentToken++;
         return curent.getValue();

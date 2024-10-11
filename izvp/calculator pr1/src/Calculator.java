@@ -21,39 +21,61 @@ public class Calculator extends JFrame {
     Button buttonMulti = new Button("*", "*", inputField);
     Button buttonDivide = new Button("/", "/", inputField);
 
-    Button buttonCe = new Button("CE", "CE", inputField);
+    Button buttonDot = new Button(".", ".", inputField);
     Button buttonC = new Button("C", "C", inputField);
     Button button0 = new Button("0", "0", inputField);
+
+    Button buttonPi = new Button("π", "π", inputField);
+    Button buttonPow = new Button("^", "^", inputField);
+    Button buttonEq = new Button("=", "=", inputField);
+
+    Button buttonDelete = new Button("<-", "<-", inputField);
+
+    Button buttonSIN = new Button("sin", "sin(", inputField);
+    Button buttonCOS = new Button("cos", "cos(", inputField);
+    Button buttonSQRT = new Button("sqrt", "sqrt(", inputField);
+    Button buttonLBRAC = new Button("(", "(", inputField);
+    Button buttonRBRAC = new Button(")", ")", inputField);
 
 
 
     public Calculator() throws HeadlessException {
         super("Calculator");
-        setBounds(300, 300, 300,400);
+        setBounds(300, 300, 400,400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         JPanel panel = new JPanel();
-        JPanel panelButtons = new JPanel(new GridLayout(4,4,10,10));
+        JPanel panelButtons = new JPanel(new GridLayout(6,4,10,10));
         panel.setLayout(new BorderLayout());
         panelButtons.add(button1);
         panelButtons.add(button2);
         panelButtons.add(button3);
         panelButtons.add(buttonPlus);
+        panelButtons.add(buttonEq);
         panelButtons.add(button4);
         panelButtons.add(button5);
         panelButtons.add(button6);
         panelButtons.add(buttonMinus);
+        panelButtons.add(buttonPow);
         panelButtons.add(button7);
         panelButtons.add(button8);
         panelButtons.add(button9);
         panelButtons.add(buttonMulti);
-        panelButtons.add(buttonCe);
+        panelButtons.add(buttonPi);
+        panelButtons.add(buttonDot);
         panelButtons.add(button0);
         panelButtons.add(buttonC);        
         panelButtons.add(buttonDivide);
+        panelButtons.add(buttonDelete);
 
+        panelButtons.add(buttonSIN);
+        panelButtons.add(buttonCOS);
+        panelButtons.add(buttonSQRT);
+        panelButtons.add(buttonLBRAC);
+        panelButtons.add(buttonRBRAC);
 
+        inputField.setForeground(Color.BLACK);
 
         panel.add(inputField, BorderLayout.NORTH);
         panel.add(panelButtons, BorderLayout.SOUTH);
