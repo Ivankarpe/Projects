@@ -75,13 +75,18 @@ public class Calculator extends JFrame {
         panelButtons.add(buttonLBRAC);
         panelButtons.add(buttonRBRAC);
 
-        inputField.setForeground(Color.BLACK);
+        
+
 
         panel.add(inputField, BorderLayout.NORTH);
         panel.add(panelButtons, BorderLayout.SOUTH);
 
         inputField.setHorizontalAlignment(JTextField.RIGHT);
-        inputField.setEnabled(false);
+        inputField.setFont(new Font("Times New Roman", Font.PLAIN, 20));
+        inputField.setForeground(Color.BLACK);  // Ensure text color is black
+        inputField.setEditable(false);  // Make the text field non-editable but not disabled
+        
+
         add(panel,BorderLayout.NORTH);
         setVisible(true);
 
