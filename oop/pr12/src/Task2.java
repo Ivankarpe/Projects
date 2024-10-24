@@ -1,162 +1,222 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 
-class LogInfo {
-    LocalDateTime logTime;
-    String logStatus;
-    String logDesc;
+abstract class UseAble {
+    String name; 
+    int hungerLevel;
+    int energyLevel;
 
-    public LogInfo(LocalDateTime logTime, String logStatus, String logDesc) {
-        this.logTime = logTime;
-        this.logStatus = logStatus;
-        this.logDesc = logDesc;
+    public UseAble(String name, int hungerLevel, int energyLevel){
+        this.energyLevel = energyLevel;
+        this.hungerLevel = hungerLevel;
+        this.name = name;
+    }
+    int GetHunger(){
+        return hungerLevel;
+    }
+    int GetEnergy(){
+        return energyLevel;
+    }
+
+    public void PrintInfo(){
+        System.out.println("Name: " + name + ", energy cost: " + energyLevel + ", hunger cost: " + hungerLevel);
     }
 }
 
-class User {
-    String username;
-    ArrayList<LogInfo> userLogs = new ArrayList<>();
-    private int logCount = 0;
-    private int successfulLogCount = 0;
 
-    public User(String username) {
-        this.username = username;
+class Consumable extends UseAble {
+
+    public Consumable(String name, int hungerLevel, int energyLevel) {
+        super(name, hungerLevel, energyLevel);
     }
 
-    void addLog(LocalDateTime logTime, String logStatus, String logDesc) {
-        this.userLogs.add(new LogInfo(logTime, logStatus, logDesc));
-        this.logCount++;
-        if (logStatus.equals("INFO")) {
-            this.successfulLogCount++;
-        }
+    @Override
+    public void PrintInfo(){
+        System.out.println("Name of a consumable: " + name + ", energy get: " + energyLevel + ", hunger get: " + hungerLevel);
     }
-
-    public double GetSuccsessPercent() {
-        if (logCount > 0) {
-            return (successfulLogCount / (double) logCount) * 100;
-        }
-        return 0;
-    }
-
-    void printUserInfo(BufferedWriter bw) throws IOException {
-        String userInfo = "Username: " + username + 
-                          ", Total amount of user logs: " + logCount + 
-                          ", Successful logs: " + successfulLogCount + 
-                          " times, Negative logs: " + (logCount - successfulLogCount) + 
-                          " times, Success percentage: " + String.format("%.2f", GetSuccsessPercent()) + "%\n";
-
-        bw.write(userInfo);
-    }
-    public int getLogCount(){
-        return logCount;
-    }
-    public int getSuccessfulLogCount() {
-        return successfulLogCount;
-    }
-
 }
 
-public class Task2{
-    public static Map<String, User> userList = new HashMap<>();
+class Move extends UseAble{
 
-    public static void main(String[] args) {
-        String path = "D:\\Java projects\\izvp\\izvp-1\\oop\\pr12\\src\\user_request_logs_1000.log";
-        String formattedPath = "D:\\Java projects\\izvp\\izvp-1\\oop\\pr12\\src\\formatted.log";
+    public Move(String name, int hungerLevel, int energyLevel) {
+        super(name, hungerLevel, energyLevel);
+    }
+    @Override
+    int GetHunger(){
+        return -hungerLevel;
+    }
+    @Override
+    int GetEnergy(){
+        return -energyLevel;
+    }
+    public void PrintInfo(){
+        System.out.println("Name of a move: " + name + ", energy cost: " + energyLevel + ", hunger cost: " + hungerLevel);
+    }
+    
+}
 
-        try(BufferedReader br = new BufferedReader(new FileReader(path));
-            BufferedWriter bw = new BufferedWriter(new FileWriter(formattedPath)))
-            {
-
-            String line;
-
-            int charCounter = 0;
-            int wordsCounter = 0;
-            int linesCounter = 0;
-
-            while ((line = br.readLine()) != null) {
-                linesCounter++;
-                charCounter += line.length();
-                wordsCounter += countWords(line);
-                addUserInfo(line);
-            }
-
-            System.out.println("Chars: " + charCounter);
-            System.out.println("Words: " + wordsCounter);
-            System.out.println("Lines: " + linesCounter);
-
-           
-            double countOfLogs = 0;
-            double countOfSuccLogs = 0;
+class Character implements Serializable {
+    String name;
+    private int levelCaps = 100;
+    private int energyLevel  = levelCaps;
+    private int hungerLevel   = levelCaps;
+    private transient String status;
 
 
-            for (User element : userList.values()) {
-                element.printUserInfo(bw);
-                countOfLogs += element.getLogCount();
-                countOfSuccLogs += element.getSuccessfulLogCount();
-                
-            }
-            
-            
-            
-            String overallInfo = "Total amount of user logs: " + countOfLogs + 
-            ", Successful logs: " + countOfSuccLogs + 
-            " times, Negative logs: " + (countOfLogs - countOfSuccLogs) + 
-            " times, Success percentage: " + countOfSuccLogs/countOfLogs*100 + "%";
+    public Character(String name) {
+        this.name = name;
+        UpdateStatus();
+    }
 
-            System.out.println(overallInfo);
+    public void Use(UseAble useAble){
+        if(!CanUse(useAble)){
+            System.out.print(name + " cant use: \n\t");
+            useAble.PrintInfo();
+            return;
+        }
+
+        int newHunger = this.hungerLevel + useAble.GetHunger();
+        int newEnergy = this.energyLevel + useAble.GetEnergy();
+
+        this.energyLevel = (newEnergy > levelCaps) ? levelCaps : newEnergy;
+
+        this.hungerLevel = (newHunger > levelCaps) ? levelCaps : newHunger;
+
+        System.out.print(this.name + " used: \n\t");
+        useAble.PrintInfo();
+        UpdateStatus();
+        System.out.print(this.name + " new stats: \n\t");
+        printPersonInfo();
+
+
+    }
+
+    private boolean CanUse(UseAble useAble){
+        int newHunger = this.hungerLevel + useAble.GetHunger();
+        int newEnergy = this.energyLevel + useAble.GetEnergy();
+
+        if( newEnergy < 0 ){
+            return false;
+        }
+        if( newHunger < 0 ){
+            return false;
+        }
+        return true;
+    }
+
+    private void UpdateStatus(){
+        int level = energyLevel + hungerLevel;
+        if(level > levelCaps * 1.5){
+            this.status =  "Nice";
+        }
+        else if(level> levelCaps * 0.66){
+            this.status = "NotBad";
+        }
+        else{
+            this.status =  "whompWhomp";
+        }
+        
+    }
+
+    public void Sleap(int hours){
+        if(hours <=0){
+            System.out.println(name + " cant sleap les that 1 hour");
+        }
+
+        int maxHours = hungerLevel / 3;
+        if(hours > maxHours){
+            hours = maxHours;
+            System.out.println(name + " cant sleap that long they sleap only " + maxHours + " hours");
+        }
+        
+
+        int deltaEnergy = hours * 15;
+        int deltaHunger = hours * -3;
+
+        energyLevel += deltaEnergy;
+        hungerLevel += deltaHunger;
+
+        energyLevel = (energyLevel > levelCaps) ? levelCaps : energyLevel;
+
+        hungerLevel = (hungerLevel > levelCaps) ? levelCaps : hungerLevel;
+        UpdateStatus();
+        System.out.println(name + " sleapt for " + hours + " hours his new stats are: ");
+        System.out.print('\t');
+        printPersonInfo();
+    }
+
+    void savePerson(String filePath) {
+        try (OutputStream fos = new FileOutputStream(filePath);
+            ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+
+            oos.writeObject(this);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
-    static int countWords(String line) {
-        boolean inWord = false;
-        int wordsCounter = 0;
-        int charCounter = line.length();
+    void loadPerson(String filePath) {
+        try (InputStream fis = new FileInputStream(filePath);
+                ObjectInputStream ois = new ObjectInputStream(fis)) {
+            Character deserPerson = (Character) ois.readObject();
 
-        for (int i = 0; i < charCounter; i++) {
-            char currentChar = line.charAt(i);
+            this.name = deserPerson.name;
+            this.energyLevel = deserPerson.energyLevel;
+            this.hungerLevel = deserPerson.hungerLevel;
+            this.UpdateStatus();
 
-            if (currentChar == ' ') {
-                if (inWord) {
-                    wordsCounter++;
-                    inWord = false;
-                }
-            } else {
-                inWord = true;
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    void printPersonInfo() {
+        System.out.println("Name: " + name + ", energyLevel: " + energyLevel + ", hungerLevel: " + hungerLevel + ", status: " + status);
+    }
+}
+
+public class Task2 {
+    public static void main(String[] args) throws Exception {
+        File initialFile = new File(".\\oop\\pr12\\src\\Task2.java\\characterSave.ser");
+        Character Luffy;
+
+        if (initialFile.exists()) {
+            Luffy = null;
+            try (InputStream fis = new FileInputStream(initialFile);
+                ObjectInputStream ois = new ObjectInputStream(fis)) {
+                Luffy = (Character) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                System.out.println(e.getMessage());
             }
+        } else {
+            Luffy = new Character("Luffy");
         }
-
-        if (inWord) {
-            wordsCounter++;
-        }
-        return wordsCounter;
-    }
-
-    static void addUserInfo(String infoStr) {
-        String[] info = infoStr.trim().split(" - ");
-        String date = info[0];    
-        String state = info[1];   
-        String username = info[2];
-        String msg = info[3];
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        LocalDateTime logTime = LocalDateTime.parse(date, formatter);
         
-        if (!userList.containsKey(username)) {
-            userList.put(username, new User(username)); 
-        } 
-        userList.get(username).addLog(logTime, state, msg);
-    }
+        Move pistol = new Move("Gomu Gomy No Pistol", 20, 10);
+        Move whip = new Move("Gomu Gomy No Whip", 15, 15);
 
+        Consumable staminaPotion = new Consumable("Stamina potion", -10, 50);
+        Consumable meat = new Consumable("Grilled meat", 35, -2); 
+
+
+        Luffy.printPersonInfo();
+        Luffy.Use(pistol);
+        Luffy.Use(meat);
+        Luffy.Use(whip);
+        Luffy.Use(staminaPotion);
+        Luffy.Sleap(10);
+        Luffy.Use(whip);
+        Luffy.Use(whip);
+        Luffy.Use(whip);
+        Luffy.Use(whip);
+        Luffy.printPersonInfo();
+    }
 }

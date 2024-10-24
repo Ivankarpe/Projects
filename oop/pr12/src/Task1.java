@@ -1,77 +1,56 @@
-import java.io.File;
+import java.io.Serializable;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+
+class Person implements Serializable {
+    String name;
+    int age;
+    String city;
+
+    public Person(String name, int age, String city) {
+        this.name = name;
+        this.age = age;
+        this.city = city;
+    }
+
+    void savePerson(String filePath) {
+        try (OutputStream fos = new FileOutputStream(filePath);
+                ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(this);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    void loadPerson(String filePath) {
+        try (InputStream fis = new FileInputStream(filePath);
+                ObjectInputStream ois = new ObjectInputStream(fis)) {
+            Person deserPerson = (Person) ois.readObject();
+            this.name = deserPerson.name;
+            this.age = deserPerson.age;
+            this.city = deserPerson.city;
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    void printPersonInfo() {
+        System.out.println("Name: " + name + ", age: " + age + "years, city: " + city);
+    }
+}
 
 public class Task1 {
-    public static void main(String[] args) {
-        File initialFile = new File("D:\\Java projects\\izvp\\izvp-1\\oop\\pr12\\src\\text.txt");
-
-        if (!initialFile.exists()) {
-            System.out.println("File doesn't exist");
-            System.exit(0);
-        }
-
-        if (!initialFile.canRead()) {
-            System.out.println("File is not readable");
-            System.exit(0);
-        }
-
-        System.out.println("File is readable");
-        try (InputStreamReader isr = new InputStreamReader(new FileInputStream(initialFile), "UTF-8");
-            OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream("output.txt"), "UTF-8")) {
-
-            char[] buf = new char[256];  
-            StringBuilder buffer = new StringBuilder(); // StringBuilder is more efficient than String for concatenation
-            String finalString;
-
-            int charsRead;
-
-            int charCounter = 0;
-            int wordsCounter = 0;
-            int linesCounter = 0;
-            boolean inWord = false;
-
-            while ((charsRead = isr.read(buf)) != -1) {
-                buffer.append(buf, 0, charsRead);  // Append only the valid characters read
-            }
-
-            finalString = buffer.toString();
-
-            charCounter = finalString.length();
-
-            for (int i = 0; i < charCounter; i++) {
-                char currentChar = finalString.charAt(i);
-
-                if (currentChar == '\n') {
-                    linesCounter++;
-                    if (inWord) {
-                        wordsCounter++;
-                        inWord = false;
-                    }
-                } else if (currentChar == ' ') {
-                    if (inWord) {
-                        wordsCounter++;
-                        inWord = false;
-                    }
-                } else {
-                    inWord = true;
-                }
-            }
-
-            if (inWord) {
-                wordsCounter++;
-            }
-
-            osw.write(finalString);
-
-            System.out.println("Chars: " + charCounter);
-            System.out.println("Words: " + wordsCounter);
-            System.out.println("Lines: " + linesCounter);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static void main(String[] args) throws Exception {
+        final String path = ".\\oop\\pr12\\src\\person.ser";
+        Person tip = new Person("Tip", 10, "Cherkasy");
+        tip.printPersonInfo();
+        tip.savePerson(path);
+        tip.loadPerson(path);
+        tip.printPersonInfo();
     }
 }
