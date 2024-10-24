@@ -185,7 +185,8 @@ class Character implements Serializable {
 
 public class Task2 {
     public static void main(String[] args) throws Exception {
-        File initialFile = new File(".\\oop\\pr12\\src\\Task2.java\\characterSave.ser");
+        String path = ".\\oop\\pr12\\src\\characterSave.ser";
+        File initialFile = new File(path);
         Character Luffy;
 
         if (initialFile.exists()) {
@@ -218,5 +219,6 @@ public class Task2 {
         Luffy.Use(whip);
         Luffy.Use(whip);
         Luffy.printPersonInfo();
+        Luffy.savePerson(path);
     }
 }
