@@ -32,7 +32,7 @@ public class HomeController implements HttpHandler {
             productsString.append(product.toString()).append("<br>");
         }
 
-        String responce= "<!DOCTYPE html>" +
+        String responce = "<!DOCTYPE html>" +
         "<html lang=\"en\">" +
         "<head>" +
         "    <meta charset=\"UTF-8\">" +
@@ -40,15 +40,18 @@ public class HomeController implements HttpHandler {
         "    <title>Home</title>" +
         "</head>" +
         "<body>" +
-        "    <p>"+ productsString.toString()+
-        "</p>" +
-        "    <form action=\"/products\" method=\"post\">" +
+        "    <p>"+ productsString.toString() + "</p>" +
+        "    <form action=\"/products\" method=\"post\" target=\"hidden_iframe\">" +
         "        Name: <input type=\"text\" name=\"name\"><br>" +
         "        Price: <input type=\"text\" name=\"price\"><br>" +
         "        <button type=\"submit\">Add New Product</button>" +
         "    </form>" +
+        "" +
+        "    <!-- Hidden iframe to prevent page reload -->" +
+        "    <iframe name=\"hidden_iframe\" style=\"display: none;\"></iframe>" +
         "</body>" +
         "</html>";
+
 
 
 
