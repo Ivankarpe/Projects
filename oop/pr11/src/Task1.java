@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class Task1 {
     public static void main(String[] args) {
-        File initialFile = new File(".\\text.txt");
+        File initialFile = new File(".\\src\\text.txt");
 
         if (!initialFile.exists()) {
             System.out.println("File doesn't exist");

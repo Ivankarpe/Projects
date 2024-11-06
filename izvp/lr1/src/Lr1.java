@@ -26,19 +26,25 @@ public class Lr1 extends JFrame {
         JButton buttLeft = new JButton("←");
         JButton buttRight = new JButton("→");
 
+        JProgressBar progresbar =new JProgressBar();
+
         buttLeft.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e){
                 imageLabel.previousImage();
+
+                progresbar.setValue((progresbar.getValue() + 10)%100 );
             }
         });
         buttRight.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e){
                 imageLabel.nextImage();
+                progresbar.setValue((progresbar.getValue() + 10)%100 );
             }
         });
 
         add(buttLeft, BorderLayout.WEST);
         add(buttRight, BorderLayout.EAST);
+        add(progresbar, BorderLayout.SOUTH);
 
         setVisible(true);
     }
