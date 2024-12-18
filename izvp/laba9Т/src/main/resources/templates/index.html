@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lesson List</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lessons</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Teacher</th>
+                <th>Day</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="lesson : ${lessons}">
+                <td th:text="${lesson.id}"></td>
+                <td th:text="${lesson.name}"></td>
+                <td th:text="${lesson.teacher}"></td>
+                <td th:text="${lesson.day}"></td>
+                <td th:text="${lesson.time}"></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+        }
+        .day-table {
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weekly Schedule</h1>
+
+    <!-- Monday Table -->
+    <div class="day-table">
+        <h2>Monday</h2>
+        <table id="monday-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Tuesday Table -->
+    <div class="day-table">
+        <h2>Tuesday</h2>
+        <table id="tuesday-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Wednesday Table -->
+    <div class="day-table">
+        <h2>Wednesday</h2>
+        <table id="wednesday-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Thursday Table -->
+    <div class="day-table">
+        <h2>Thursday</h2>
+        <table id="thursday-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Friday Table -->
+    <div class="day-table">
+        <h2>Friday</h2>
+        <table id="friday-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchSchedule() {
+            try {
+                const response = await fetch('http://localhost:8080/api/schedule', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch schedule');
+                }
+
+                const data = await response.json();
+
+                // Group the lessons by day
+                const days = {
+                    Monday: [],
+                    Tuesday: [],
+                    Wednesday: [],
+                    Thursday: [],
+                    Friday: []
+                };
+
+                // Organize the lessons by day
+                data.forEach(daySchedule => {
+                    daySchedule.forEach(item => {
+                        if (days[item.day]) {
+                            days[item.day].push(item);
+                        }
+                    });
+                });
+
+                // Function to populate a table for a specific day
+                function populateTable(day, lessons) {
+                    const tableBody = document.querySelector(`#${day.toLowerCase()}-table tbody`);
+                    tableBody.innerHTML = ''; // Clear existing table rows
+
+                    lessons.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.name}</td>
+                            <td>${item.teacher}</td>
+                            <td>${item.time}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+
+                // Populate each day's table
+                Object.keys(days).forEach(day => {
+                    populateTable(day, days[day]);
+                });
+
+            } catch (error) {
+                console.error('Error fetching schedule:', error);
+            }
+        }
+
+        // Call fetchSchedule when the page loads
+        fetchSchedule();
+    </script>
+</body>
+</html>

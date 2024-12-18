@@ -39,7 +39,7 @@ public class SimpleTableTest extends JFrame {
         products.add(new Product("124", "mac", 125, 35.52 ));
         products.add(new Product("125", "apple", 25, 25.69 ));
 
-
+        
         for (Product product : products){
             tableModel.addRow(new Object[]{product.id, product.name, product.price, product.count});
         }
