@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOMP WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs"></script>
+</head>
+<body>
+
+    <h2>STOMP WebSocket Test</h2>
+
+    <label for="subscribe-topic">Topic to Subscribe:</label>
+    <input type="text" id="subscribe-topic" placeholder="/topic/test">
+    <br><br>
+
+    <label for="message">Message to Send:</label>
+    <input type="text" id="message" placeholder="Hello, WebSocket!">
+    <br><br>
+
+    <button id="connect-btn">Connect</button>
+    <button id="send-btn">Send Message</button>
+
+    <div id="messages">
+        <h3>Received Messages:</h3>
+        <ul id="message-list"></ul>
+    </div>
+
+    <script>
+        const url = "ws://80.77.43.117:8080/stomp";
+        const client = new StompJs.Client({
+            brokerURL: url,
+            connectHeaders: {},
+            onConnect: () => {
+                console.log("Connected to the WebSocket server");
+
+                // Enable the "Send Message" button after connection
+                document.getElementById("send-btn").disabled = false;
+
+                const subscribeTopic = document.getElementById("subscribe-topic").value || '/topic/test';
+                // Subscribe to the topic
+                client.subscribe(subscribeTopic, (message) => {
+                    const messageList = document.getElementById("message-list");
+                    const listItem = document.createElement("li");
+                    listItem.textContent = message.body;
+                    messageList.appendChild(listItem);
+                });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP Error:", frame);
+            }
+        });
+
+        // Connect to the WebSocket server
+        document.getElementById("connect-btn").addEventListener("click", () => {
+            client.activate();
+            document.getElementById("connect-btn").disabled = true;
+        });
+
+        // Send a message to the topic
+        document.getElementById("send-btn").addEventListener("click", () => {
+            const messageToSend = document.getElementById("message").value;
+            const topicToSend = document.getElementById("subscribe-topic").value || '/topic/test';
+            
+            if (messageToSend) {
+                client.publish({
+                    destination: topicToSend,
+                    body: JSON.stringify({ message: messageToSend })
+                });
+            } else {
+                alert("Please enter a message.");
+            }
+        });
+    </script>
+
+</body>
+</html>

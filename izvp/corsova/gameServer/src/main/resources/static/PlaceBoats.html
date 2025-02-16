@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Морський бій</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 2px;
+            margin: 20px auto;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+        }
+
+        .cell.ship {
+            background-color: #4caf50;
+        }
+
+        .cell.preview {
+            background-color: #a5d6a7;
+        }
+
+        .cell:hover {
+            background-color: #bdbdbd;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Морський бій</h1>
+    <p id="code"></p>
+    <p id="Enemy">Противник: очікується</p>
+
+    <div id="board" class="board"></div>
+    <p>Оберіть тип корабля:</p>
+    <button id="ship1" onclick="selectShip(1)">1 клітинка (4 шт.)</button>
+    <button id="ship2" onclick="selectShip(2)">2 клітинки (3 шт.)</button>
+    <button id="ship3" onclick="selectShip(3)">3 клітинки (2 шт.)</button>
+    <button id="ship4" onclick="selectShip(4)">4 клітинки (1 шт.)</button>
+    <p>Натисни "R" для обертання корабля</p>
+    <button onclick="clearBoard()">Очистити поле</button>
+    <button onclick="saveBoard()">Зберегти поле</button> <!-- Кнопка для збереження -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs"></script>
+    <script>
+        let topic;
+        let id;
+        let url = "ws://80.77.43.117:8080/stomp";
+        let client;
+
+        let selectedCells = [];
+        let isHorizontal = true;
+        let currentHoveredCell = null;
+        let shipType = 0; // Поточний тип корабля
+        let shipCounts = { 1: 4, 2: 3, 3: 2, 4: 1 };
+        let isBoardLocked = false; // Флаг для блокування подальших змін
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R' || e.key === 'К' || e.key === 'к') {
+                isHorizontal = !isHorizontal;
+                if (currentHoveredCell) {
+                    clearPreview();
+                    showPreview(currentHoveredCell);
+                }
+            }
+        });
+
+        function selectShip(type) {
+            if (shipCounts[type] > 0 && !isBoardLocked) {
+                shipType = type;
+            } else {
+                alert(`Немає доступних кораблів довжиною ${type}`);
+            }
+        }
+
+        function connectWebSocket() {
+            url = "ws://80.77.43.117:8080/stomp";
+            client = new StompJs.Client({
+                brokerURL: url,
+                onConnect: () => {
+                    topic = sessionStorage.getItem('topic');
+                    client.publish({
+                        destination: `/topic/${topic}`,
+                        body: JSON.stringify({ type: 'Guest', name: sessionStorage.getItem('username') })
+                    });
+
+                    client.subscribe(`/topic/${topic}`, (message) => {
+                        const body = JSON.parse(message.body);
+                        if (body.type === 'Guest') {
+                            if(sessionStorage.getItem('status') === "guest"){
+                                return;
+                            }
+                            document.getElementById('Enemy').textContent = `Противник: ${body.name}`;
+                            sessionStorage.setItem('guest', body.name);
+                            sessionStorage.setItem('host', sessionStorage.getItem('username'));
+                            client.publish({
+                                destination: `/topic/${topic}`,
+                                body: JSON.stringify({ type: 'Host', name: sessionStorage.getItem('username') })
+                            });
+                        } else if (body.type === 'Host') {
+                            if(sessionStorage.getItem('status') === "host"){
+                                return;
+                            }
+                            sessionStorage.setItem('host', body.name);
+                            sessionStorage.setItem('guest', sessionStorage.getItem('username'));
+                            document.getElementById('Enemy').textContent = `Противник: ${body.name}`;
+                        }
+                        else if (body.type === 'GameStart') {
+                            window.location.href = 'Game.html';
+                        }
+                    });
+                }
+
+            });
+            client.activate();
+
+
+
+        }
+
+        function createBoard() {
+            connectWebSocket();
+            topic = sessionStorage.getItem('topic');
+            if (sessionStorage.getItem('code') == null) {
+                document.getElementById('code').textContent = ``;
+
+
+
+            } else {
+                document.getElementById('code').textContent = `Код підключення: ${sessionStorage.getItem('code')}`;
+
+            }
+            id = sessionStorage.getItem('id');
+
+            const board = document.getElementById('board');
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.addEventListener('mouseenter', () => {
+                    currentHoveredCell = cell;
+                    showPreview(cell);
+                });
+                cell.addEventListener('mouseleave', () => {
+                    currentHoveredCell = null;
+                    clearPreview();
+                });
+                cell.addEventListener('click', () => {
+                    if (!isBoardLocked) {
+                        placeShip(cell);
+                    }
+                });
+                board.appendChild(cell);
+            }
+        }
+
+        function showPreview(cell) {
+            const length = shipType;
+            const index = parseInt(cell.dataset.index);
+            for (let i = 0; i < length; i++) {
+                const offset = isHorizontal ? i : i * 10;
+                const previewCell = document.querySelector(`.cell[data-index='${index + offset}']`);
+                if (previewCell) {
+                    if (isHorizontal && Math.floor((index + offset) / 10) === Math.floor(index / 10) &&
+                        (index + offset) % 10 < 10) {
+                        previewCell.classList.add('preview');
+                    } else if (!isHorizontal && index + offset < 100) {
+                        previewCell.classList.add('preview');
+                    }
+                }
+            }
+        }
+
+        function clearPreview() {
+            document.querySelectorAll('.cell.preview').forEach(cell => {
+                cell.classList.remove('preview');
+            });
+        }
+
+        function canPlaceShip(index, length, isHorizontal) {
+            const surroundingOffsets = [
+                -1, 1, -10, 10, // суміжні клітинки
+                -11, -9, 9, 11  // діагональні клітинки
+            ];
+
+            for (let i = 0; i < length; i++) {
+                const offset = isHorizontal ? i : i * 10;
+                const cellIndex = index + offset;
+
+                if (isHorizontal) {
+                    if (Math.floor(cellIndex / 10) !== Math.floor((index) / 10)) {
+                        return false; // Корабель не може переходити на інший рядок
+                    }
+                }
+
+                const shipCell = document.querySelector(`.cell[data-index='${cellIndex}']`);
+
+                if (!shipCell || selectedCells.includes(cellIndex)) {
+                    return false;
+                }
+
+                for (let surroundingOffset of surroundingOffsets) {
+                    const adjacentCell = document.querySelector(`.cell[data-index='${cellIndex + surroundingOffset}']`);
+                    if (adjacentCell && selectedCells.includes(cellIndex + surroundingOffset)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function placeShip(cell) {
+            const length = shipType;
+            const index = parseInt(cell.dataset.index);
+            if (canPlaceShip(index, length, isHorizontal)) {
+                for (let i = 0; i < length; i++) {
+                    const offset = isHorizontal ? i : i * 10;
+                    const shipCell = document.querySelector(`.cell[data-index='${index + offset}']`);
+                    shipCell.classList.add('ship');
+                    selectedCells.push(index + offset);
+                }
+                shipCounts[shipType]--;
+
+                clearPreview();
+                if (shipCounts[shipType] === 0) {
+                    shipType = 0;
+                }
+                updateShipButtons();
+            } else {
+                alert("Неможливо розташувати корабель тут!");
+            }
+            clearPreview();
+        }
+
+        // Функція для збереження поля
+        function saveBoard() {
+            if (isBoardLocked) {
+                alert("Поле вже збережене!");
+                return;
+            }
+            isBoardLocked = true; // Блокуємо можливість змін
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = true; // Блокуємо всі кнопки
+            });
+            if (selectedCells.length < 20) {
+                alert("Ви не розмістили всі кораблі!");
+                return;
+            }
+
+            const board = [];
+            const cells = document.querySelectorAll('.cell');
+
+            // Перетворюємо поле в 2D масив
+            for (let i = 0; i < 10; i++) {
+                const row = [];
+                for (let j = 0; j < 10; j++) {
+                    const cellIndex = i * 10 + j;
+                    const cell = cells[cellIndex];
+                    if (cell.classList.contains('ship')) {
+                        row.push('S'); // Корабель
+                    } else {
+                        row.push(' '); // Пусте місце
+                    }
+                }
+                board.push(row);
+            }
+
+
+
+            sessionStorage.setItem('board', JSON.stringify(board));
+            client.publish({
+                destination: `/topic/${topic}`,
+                body: JSON.stringify({ type: 'ConfirmBoard', id: id, board: board })
+            });
+        }
+
+        // Функція для очищення поля
+        function clearBoard() {
+            if (isBoardLocked) {
+                alert("Розміщення кораблів заблоковано!");
+                return;
+            }
+
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('ship');  // Видаляємо всі кораблі
+            });
+            selectedCells = []; // Очищаємо список зайнятих клітинок
+            shipCounts = { 1: 4, 2: 3, 3: 2, 4: 1 }; // Відновлюємо початкові значення для кількості кораблів
+            alert("Поле очищено!");
+        }
+
+        function updateShipButtons() {
+            document.getElementById('ship1').textContent = `1 клітинка (${shipCounts[1]} шт.)`;
+            document.getElementById('ship2').textContent = `2 клітинки (${shipCounts[2]} шт.)`;
+            document.getElementById('ship3').textContent = `3 клітинки (${shipCounts[3]} шт.)`;
+            document.getElementById('ship4').textContent = `4 клітинки (${shipCounts[4]} шт.)`;
+        }
+
+
+
+        window.onload = createBoard;
+    </script>
+</body>
+
+</html>

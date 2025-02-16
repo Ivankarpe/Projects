@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Гра "Морський бій"</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        input {
+            padding: 10px;
+            width: 200px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Ласкаво просимо до гри "Морський бій"</h1>
+        <input type="text" id="username" placeholder="Введіть ваше ім'я">
+        <div>
+            <button onclick="joinGame()">Приєднатися</button>
+            <button onclick="createGame()">Створити гру</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+    <script>
+        function joinGame() {
+            const username = document.getElementById("username").value;
+            if (username) {
+                const id = uuid.v4();
+                fetch('http://80.77.43.117:8080/loby/join', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ idplayer: id, name: username, code: prompt("Введіть код гри") })
+                }).then(response => {
+                    console.log("Статус код:", response.status); 
+                    if (response.ok) { 
+                        return response.text(); 
+                    } else {
+                        throw new Error(`Помилка: ${response.status}`);
+                    }
+                }).then(data => {
+                    sessionStorage.setItem('username', username);
+                    sessionStorage.setItem('id', id);
+                    sessionStorage.setItem('topic', data);
+                    sessionStorage.setItem('status', "guest");
+
+                    window.location.href = 'PlaceBoats.html';
+                    })
+                    .catch(error => {
+                        console.error("Помилка:", error);
+                    });
+            } else {
+                alert("Будь ласка, введіть ім'я.");
+            }
+        }
+
+        function createGame() {
+            const username = document.getElementById("username").value;
+            if (username) {
+                const id = uuid.v4();
+                fetch('http://80.77.43.117:8080/loby', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ idplayer: id, name: username })
+                }).then(response => {
+                    console.log("Статус код:", response.status); 
+                    if (response.ok) { 
+                        return response.json(); 
+                    } else {
+                        throw new Error(`Помилка: ${response.status}`);
+                    }
+                }).then(data => {
+                    sessionStorage.setItem('username', username);
+                    sessionStorage.setItem('id', id);
+                    sessionStorage.setItem('topic', data.topic);
+                    sessionStorage.setItem('code', data.code);
+                    sessionStorage.setItem('status', "host");
+                    window.location.href = 'PlaceBoats.html';
+                    })
+                    .catch(error => {
+                        console.error("Помилка:", error);
+                    });
+            } else {
+                alert("Будь ласка, введіть ім'я.");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

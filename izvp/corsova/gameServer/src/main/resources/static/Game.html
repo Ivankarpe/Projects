@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Морський бій</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px auto;
+        }
+
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 2px;
+            margin: 20px;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+        }
+
+        .cell.ship {
+            background-color: #606060;
+        }
+        .cell.water {
+            background-color: #60a3de;
+        }
+        .cell.miss {
+            background-color: #ecc102;
+        }
+        .cell.damage {
+            background-color: #b61111;
+        }
+        .cell.preview {
+            background-color: #a5d6a7;
+        }
+
+        .cell.enemy:hover {
+            background-color: #bdbdbd;
+            cursor: pointer;
+        }
+
+        .board-label {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .turn-indicator {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs"></script>
+</head>
+
+<body>
+
+    <h1>Гра "Морський бій"</h1>
+
+    <div class="turn-indicator" id="turnIndicator">
+        Поточний хід: <span id="currentTurn">Гравець 1</span>
+    </div>
+
+    <div class="board-container">
+        <div class="board-wrapper">
+            <div class="board-label" id="yourBoard">Поле Гравця 1</div>
+            <div class="board" id="board1">
+                <!-- Таблиця 1 -->
+            </div>
+        </div>
+        
+        <div class="board-wrapper">
+            <div class="board-label" id="NoTyourBoard">Поле Гравця 2</div>
+            <div class="board" id="board2">
+                <!-- Таблиця 2 -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPlayer = 1; // 1- host, 2- guest
+        const url = "ws://80.77.43.117:8080/stomp";
+        let client = new StompJs.Client({ brokerURL: url,
+            onConnect: () => {
+                const topic = sessionStorage.getItem('topic');
+                client.subscribe(`/topic/${topic}`, (message) => {
+                        const body = JSON.parse(message.body);
+                        if(body.type === 'updadeStateResponce'){
+                            if(body.id === sessionStorage.getItem('id')){
+                                sessionStorage.setItem('board', JSON.stringify(body.Board));
+                                currentPlayer = body.turn;
+                                updateYourBoard();
+                            }
+                            else{
+                                updateEnemyBoard(body.Board);
+                            } 
+                        }else if(body.type === 'winner'){
+                            if(body.id === sessionStorage.getItem('id')){
+                                alert('Ви програли!');
+                                setTimeout(() => {
+                                    window.location.href = '/';
+                                }, 3000);
+                            }
+                            else{
+                                alert('Ви виграли!');
+                                setTimeout(() => {
+                                    window.location.href = '/';
+                                }, 3000);
+                            }
+                            
+                        }
+                    
+                });
+            }
+        });
+
+
+        function updateYourBoard() {
+            const boardId = 'board1';
+            
+            const boardArray = JSON.parse(sessionStorage.getItem('board'));
+
+            const board = document.getElementById(boardId);
+            boardArray.forEach((row, rowIndex) => {
+                row.split("").forEach((cell, colIndex) => {
+                    const cellDiv = board.children[rowIndex * 10 + colIndex];
+                    cellDiv.classList.remove('ship', 'water', 'miss', 'damage');
+                    if (cell === 'S') {
+                        cellDiv.classList.add('ship');
+                    } else if (cell === ' ') {
+                        cellDiv.classList.add('water');
+                    } else if (cell === 'X') {
+                        cellDiv.classList.add('damage');
+                    }
+                    else if (cell === 'O') {
+                        cellDiv.classList.add('miss');
+                    }
+                });
+            });
+        }
+
+        function updateEnemyBoard(boardArray){
+            const board = document.getElementById('board2');
+            console.log(boardArray);
+            boardArray.forEach((row, rowIndex) => {
+                row.split("").forEach((cell, colIndex) => {
+                    const cellDiv = board.children[rowIndex * 10 + colIndex];
+                    cellDiv.classList.remove('ship', 'water', 'miss', 'damage');
+                    if (cell === 'O') {
+                        cellDiv.classList.add('miss');
+                    } else if (cell === 'X') {
+                        cellDiv.classList.add('damage');
+                    } else  {
+                        cellDiv.classList.add('water');
+                    }
+                }
+            );
+            });
+        }
+        function createYourBoard() {
+            const boardId = 'board1';
+            
+            const boardArray = JSON.parse(sessionStorage.getItem('board'));
+
+            const board = document.getElementById(boardId);
+            boardArray.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.classList.add('cell');
+                    if (cell === 'S') {
+                        cellDiv.classList.add('ship');
+                    } else if (cell === ' ') {
+                        cellDiv.classList.add('water');
+                    } else if (cell === 'X') {
+                        cellDiv.classList.add('miss');
+                    }
+                    board.appendChild(cellDiv);
+                });
+            });
+        }
+
+        function createEnemyBoard() {
+            const board = document.getElementById('board2');
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.classList.add('enemy');
+                cell.classList.add('water');
+                cell.addEventListener('click', () => {
+                    const topic = sessionStorage.getItem('topic');
+                    if((currentPlayer === 1 && sessionStorage.getItem('status') === 'host') || (currentPlayer === 2 && sessionStorage.getItem('status') === 'guest')){
+                        if(!cell.classList.contains('damage') && !cell.classList.contains('miss')){
+                            client.publish({
+                                destination: `/topic/${topic}`,
+                                body: JSON.stringify({type: 'Move', UserId: sessionStorage.getItem('id'), x: parseInt(cell.dataset.index)%10, y:parseInt(cell.dataset.index)/10})
+                            });
+                        }
+
+                    }
+                });
+                cell.setAttribute('data-index', i);
+                board.appendChild(cell);
+            }
+        }
+
+
+        function connectWebSocket() {
+            
+            client.onStompError = (frame) => alert('Помилка з’єднання: ' + frame.headers['message']);
+            client.activate();
+
+            const host = sessionStorage.getItem('host');
+            const guest = sessionStorage.getItem('guest');
+            
+            if(sessionStorage.getItem('status') === 'host'){
+                document.getElementById('yourBoard').textContent = `Поле ${host}`;
+                document.getElementById('NoTyourBoard').textContent = `Поле ${guest}`;
+            }
+            else{
+                document.getElementById('yourBoard').textContent = `Поле ${guest}`;
+                document.getElementById('NoTyourBoard').textContent = `Поле ${host}`;
+            }
+           
+        }
+
+        window.onload = connectWebSocket;
+        createYourBoard();
+        createEnemyBoard();
+
+
+    </script>
+</body>
+
+</html>
