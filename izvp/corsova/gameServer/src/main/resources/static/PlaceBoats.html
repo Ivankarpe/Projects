@@ -111,7 +111,7 @@
                     client.subscribe(`/topic/${topic}`, (message) => {
                         const body = JSON.parse(message.body);
                         if (body.type === 'Guest') {
-                            if(sessionStorage.getItem('status') === "guest"){
+                            if (sessionStorage.getItem('status') === "guest") {
                                 return;
                             }
                             document.getElementById('Enemy').textContent = `Противник: ${body.name}`;
@@ -122,7 +122,7 @@
                                 body: JSON.stringify({ type: 'Host', name: sessionStorage.getItem('username') })
                             });
                         } else if (body.type === 'Host') {
-                            if(sessionStorage.getItem('status') === "host"){
+                            if (sessionStorage.getItem('status') === "host") {
                                 return;
                             }
                             sessionStorage.setItem('host', body.name);
@@ -203,30 +203,46 @@
 
         function canPlaceShip(index, length, isHorizontal) {
             const surroundingOffsets = [
-                -1, 1, -10, 10, // суміжні клітинки
-                -11, -9, 9, 11  // діагональні клітинки
+                -1, 1, -10, 10,  // суміжні клітинки
+                -11, -9, 9, 11   // діагональні клітинки
             ];
+
+            const isValidCell = (cellIndex) => {
+                // Перевірка виходу за межі поля
+                return cellIndex >= 0 && cellIndex < 100;
+            };
 
             for (let i = 0; i < length; i++) {
                 const offset = isHorizontal ? i : i * 10;
                 const cellIndex = index + offset;
 
+                // Перевірка переходу на інший рядок для горизонтального розміщення
                 if (isHorizontal) {
-                    if (Math.floor(cellIndex / 10) !== Math.floor((index) / 10)) {
-                        return false; // Корабель не може переходити на інший рядок
+                    if (Math.floor(cellIndex / 10) !== Math.floor(index / 10)) {
+                        console.log('1: Перехід на інший рядок');
+                        return false;
                     }
                 }
 
-                const shipCell = document.querySelector(`.cell[data-index='${cellIndex}']`);
-
-                if (!shipCell || selectedCells.includes(cellIndex)) {
+                if (!isValidCell(cellIndex) || selectedCells.includes(cellIndex)) {
+                    console.log('2: Клітинка зайнята або вихід за межі');
                     return false;
                 }
 
+                // Перевірка суміжних клітинок
                 for (let surroundingOffset of surroundingOffsets) {
-                    const adjacentCell = document.querySelector(`.cell[data-index='${cellIndex + surroundingOffset}']`);
-                    if (adjacentCell && selectedCells.includes(cellIndex + surroundingOffset)) {
-                        return false;
+                    const adjacentIndex = cellIndex + surroundingOffset;
+
+                    // Перевірка меж поля та рядків для сусідніх клітинок
+                    if (isValidCell(adjacentIndex)) {
+                        // Перевірка, чи не переходить сусідня клітинка на інший рядок
+                        if (Math.abs((adjacentIndex % 10) - (cellIndex % 10)) <= 1 &&
+                            Math.abs(Math.floor(adjacentIndex / 10) - Math.floor(cellIndex / 10)) <= 1) {
+                            if (selectedCells.includes(adjacentIndex)) {
+                                console.log('3: Суміжна клітинка зайнята');
+                                return false;
+                            }
+                        }
                     }
                 }
             }
@@ -263,28 +279,28 @@
                 alert("Поле вже збережене!");
                 return;
             }
-            isBoardLocked = true; // Блокуємо можливість змін
-            document.querySelectorAll('button').forEach(button => {
-                button.disabled = true; // Блокуємо всі кнопки
-            });
             if (selectedCells.length < 20) {
                 alert("Ви не розмістили всі кораблі!");
                 return;
             }
+            isBoardLocked = true; // Блокуємо можливість змін
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = true; // Блокуємо всі кнопки
+            });
 
             const board = [];
             const cells = document.querySelectorAll('.cell');
 
             // Перетворюємо поле в 2D масив
             for (let i = 0; i < 10; i++) {
-                const row = [];
+                let row = "";
                 for (let j = 0; j < 10; j++) {
                     const cellIndex = i * 10 + j;
                     const cell = cells[cellIndex];
                     if (cell.classList.contains('ship')) {
-                        row.push('S'); // Корабель
+                        row += "S"; // Корабель
                     } else {
-                        row.push(' '); // Пусте місце
+                        row += " "; // Пусте місце
                     }
                 }
                 board.push(row);
@@ -311,7 +327,8 @@
                 cell.classList.remove('ship');  // Видаляємо всі кораблі
             });
             selectedCells = []; // Очищаємо список зайнятих клітинок
-            shipCounts = { 1: 4, 2: 3, 3: 2, 4: 1 }; // Відновлюємо початкові значення для кількості кораблів
+            shipCounts = { 1: 4, 2: 3, 3: 2, 4: 1 };
+            updateShipButtons(); // Відновлюємо початкові значення для кількості кораблів
             alert("Поле очищено!");
         }
 

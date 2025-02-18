@@ -1,6 +1,5 @@
 package com.praktukym.gameServer.Game;
 
-
 import com.praktukym.gameServer.DTOs.GameConectDTO;
 import com.praktukym.gameServer.WSMessages.GameReadyMessage;
 import com.praktukym.gameServer.WSMessages.GameStartMessage;
@@ -13,8 +12,15 @@ import com.praktukym.gameServer.WSMessages.updadeStateResponceMessage;
 import com.praktukym.gameServer.WSMessages.winnerMessage;
 import com.praktukym.gameServer.WSsesions.WSsesionService;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +39,7 @@ public class GameService {
     static Map<String, String> topicToCode = new HashMap<>();
     @Autowired
     WSsesionService wSsesionService;
-    
+
     @Autowired
     private MesegeSender messageSender;
 
@@ -43,24 +49,21 @@ public class GameService {
         gameConectDTO.topic = UUID.randomUUID().toString();
 
         Game game = new Game();
-        game.setTopic( gameConectDTO.topic);
+        game.setTopic(gameConectDTO.topic);
         game.setHost(host);
         game.setStatus(0);
 
-       
-        topicToCode.put(newcode + "",  gameConectDTO.topic);
+        topicToCode.put(newcode + "", gameConectDTO.topic);
         gameConectDTO.code = newcode + "";
         newcode++;
-        
-        
-        
-        games.put( gameConectDTO.topic, game);
+
+        games.put(gameConectDTO.topic, game);
 
         return gameConectDTO;
     }
 
     public ResponseEntity<?> JoinGame(String code, String guest) throws Exception {
-        
+
         String topic = topicToCode.get(code);
         if (topic == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Game not found");
@@ -93,11 +96,11 @@ public class GameService {
         }
         if (game.getHostBoard() != null && game.getGuestBoard() != null) {
             game.setStatus(2);
-    
+            game.setTurn(1);
+
             messageSender.SendMessagwToTopic(topic, new GameStartMessage());
         }
     }
-
 
     public void Move(String topic, MoveMessage message) throws Exception {
         Game game = games.get(topic);
@@ -117,25 +120,116 @@ public class GameService {
             turn = 2;
             board = game.getHostBoard();
         }
+        game.setTurn(turn);
 
         if (board[message.y][message.x] == 'S') {
             board[message.y][message.x] = 'X';
-            
 
-            messageSender.SendMessagwToTopic(topic, new updadeStateResponceMessage(game.getHost(), game.getHostBoard(), turn));
-            messageSender.SendMessagwToTopic(topic, new updadeStateResponceMessage(game.getGuest(), game.getGuestBoard(), turn));
+            markShipSurrounding(message.y, message.x, board);
+
+            messageSender.SendMessagwToTopic(topic,
+                    new updadeStateResponceMessage(game.getHost(), game.getHostBoard(), turn));
+            messageSender.SendMessagwToTopic(topic,
+                    new updadeStateResponceMessage(game.getGuest(), game.getGuestBoard(), turn));
         } else {
-            if(turn ==1){
+            if (turn == 1) {
                 turn = 2;
-            }else{
+            } else {
                 turn = 1;
             }
+        game.setTurn(turn);
+
             board[message.y][message.x] = 'O';
-            messageSender.SendMessagwToTopic(topic, new updadeStateResponceMessage(game.getHost(), game.getHostBoard(), turn));
-            messageSender.SendMessagwToTopic(topic, new updadeStateResponceMessage(game.getGuest(), game.getGuestBoard(), turn));
+            messageSender.SendMessagwToTopic(topic,
+                    new updadeStateResponceMessage(game.getHost(), game.getHostBoard(), turn));
+            messageSender.SendMessagwToTopic(topic,
+                    new updadeStateResponceMessage(game.getGuest(), game.getGuestBoard(), turn));
         }
         CheckWin(game);
 
+    }
+
+    private boolean isValidCell(int row, int col) {
+        return row >= 0 && row < 10 && col >= 0 && col < 10;
+    }
+
+    static Set<List<Integer>> visited = new HashSet<>();
+
+    public void markShipSurrounding(int startRow, int startCol, char[][] Board) {
+        visited.clear();
+
+        List<int[]> shipCells;
+        int[][] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        boolean isSingle = true;
+
+        for (int[] d : directions) {
+            int newRow = startRow + d[0];
+            int newCol = startCol + d[1];
+
+            if (!isValidCell(newRow, newCol)) {
+                continue;
+            }
+            if (Board[newRow][newCol] == 'S' || Board[newRow][newCol] == 'X') {
+                isSingle = false;
+                break;
+            }
+
+        }
+
+        if (isSingle) {
+            shipCells = new ArrayList<>();
+            shipCells.add(new int[] { startRow, startCol });
+        } else {
+            shipCells = findShipCells(startRow, startCol, Board);
+        }
+
+        boolean isShipDestroyed = true;
+        for (int[] cell : shipCells) {
+            int row = cell[0];
+            int col = cell[1];
+            if (Board[row][col] == 'S') {
+                isShipDestroyed = false;
+            }
+        }
+
+        if (!isShipDestroyed) {
+            return;
+        }
+
+        for (int[] cell : shipCells) {
+            int row = cell[0];
+            int col = cell[1];
+            for (int i = -1; i <= 1; i++) {
+                for (int j = -1; j <= 1; j++) {
+                    int newRow = row + i;
+                    int newCol = col + j;
+                    if (isValidCell(newRow, newCol) && Board[newRow][newCol] == ' ') {
+                        Board[newRow][newCol] = 'O';
+                    }
+                }
+            }
+        }
+    }
+
+    private List<int[]> findShipCells(int row, int col, char[][] Board) {
+        List<int[]> shipCells = new ArrayList<>();
+        int[][] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+
+        for (int[] d : directions) {
+            int newRow = row + d[0];
+            int newCol = col + d[1];
+            List<Integer> key = Arrays.asList(newRow, newCol);
+
+            if (!visited.contains(key)) {
+                visited.add(key);
+                if (isValidCell(newRow, newCol) &&
+                        (Board[newRow][newCol] == 'S' || Board[newRow][newCol] == 'X')) {
+                    shipCells.add(new int[] { newRow, newCol });
+                    shipCells.addAll(findShipCells(newRow, newCol, Board));
+                }
+            }
+        }
+        return shipCells;
     }
 
     private void CheckWin(Game game) throws Exception {
@@ -168,18 +262,15 @@ public class GameService {
         if (game.getStatus() != 2) {
             return;
         }
-        char[][] board;
-        if (game.getHost().equals(message.id)) {
-            board = game.getHostBoard();
-        } else {
-            board = game.getGuestBoard();
-        }
-        //messageSender.SendMessagwToTopic(topic, new updadeStateResponceMessage(message.id, board));
+        
+        
+        messageSender.SendMessagwToTopic(topic,
+        new updadeStateResponceMessage(game.getHost(), game.getHostBoard(), game.getTurn()));
+messageSender.SendMessagwToTopic(topic,
+        new updadeStateResponceMessage(game.getGuest(), game.getGuestBoard(), game.getTurn()));
     }
 
-    
-
-    public void CloseGame( String topic) {
+    public void CloseGame(String topic) {
         games.remove(topic);
     }
 }

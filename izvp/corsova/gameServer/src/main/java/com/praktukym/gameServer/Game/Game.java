@@ -12,6 +12,9 @@ public class Game {
     private char[][] hostBoard;
     private char[][] guestBoard;
 
+    private int turn;
+
+
     public String CheckWinner() {
 
         char[][] board = hostBoard;
@@ -56,6 +59,9 @@ public class Game {
     public char[][] getHostBoard() {
         return hostBoard;
     }
+    public int getTurn() {
+        return turn;
+    }
 
     
 
@@ -90,6 +96,9 @@ public class Game {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+    public void setTurn(int turn) {
+        this.turn = turn;
     }
 
 }

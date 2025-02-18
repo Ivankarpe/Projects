@@ -61,7 +61,7 @@ public class MessageHandler {
 					break; 
 			case "buf":
 					break; 
-			case "updadeState":
+			case "updateState":
 					gameService.updadeState(topic, objectMapper.readValue(message,  updadeStateMessage.class));;
 					break; 
 			case "ConfirmBoard":

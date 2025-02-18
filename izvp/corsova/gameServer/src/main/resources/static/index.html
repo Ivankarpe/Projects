@@ -97,6 +97,7 @@
         function createGame() {
             const username = document.getElementById("username").value;
             if (username) {
+                sessionStorage.clear();
                 const id = uuid.v4();
                 fetch('http://80.77.43.117:8080/loby', {
                     method: 'POST',

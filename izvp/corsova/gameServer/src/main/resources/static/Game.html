@@ -41,23 +41,27 @@
         .cell.ship {
             background-color: #606060;
         }
+
         .cell.water {
             background-color: #60a3de;
         }
+
         .cell.miss {
             background-color: #ecc102;
         }
+
         .cell.damage {
             background-color: #b61111;
         }
+
         .cell.preview {
             background-color: #a5d6a7;
         }
 
-        .cell.enemy:hover {
+        /* .cell.enemy:hover {
             background-color: #bdbdbd;
             cursor: pointer;
-        }
+        } */
 
         .board-label {
             font-size: 18px;
@@ -88,7 +92,7 @@
                 <!-- Таблиця 1 -->
             </div>
         </div>
-        
+
         <div class="board-wrapper">
             <div class="board-label" id="NoTyourBoard">Поле Гравця 2</div>
             <div class="board" id="board2">
@@ -96,48 +100,73 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         let currentPlayer = 1; // 1- host, 2- guest
         const url = "ws://80.77.43.117:8080/stomp";
-        let client = new StompJs.Client({ brokerURL: url,
+        let client = new StompJs.Client({
+            brokerURL: url,
             onConnect: () => {
                 const topic = sessionStorage.getItem('topic');
                 client.subscribe(`/topic/${topic}`, (message) => {
-                        const body = JSON.parse(message.body);
-                        if(body.type === 'updadeStateResponce'){
-                            if(body.id === sessionStorage.getItem('id')){
-                                sessionStorage.setItem('board', JSON.stringify(body.Board));
-                                currentPlayer = body.turn;
-                                updateYourBoard();
-                            }
-                            else{
-                                updateEnemyBoard(body.Board);
-                            } 
-                        }else if(body.type === 'winner'){
-                            if(body.id === sessionStorage.getItem('id')){
-                                alert('Ви програли!');
-                                setTimeout(() => {
-                                    window.location.href = '/';
-                                }, 3000);
-                            }
-                            else{
-                                alert('Ви виграли!');
-                                setTimeout(() => {
-                                    window.location.href = '/';
-                                }, 3000);
-                            }
-                            
+                    const body = JSON.parse(message.body);
+                    if (body.type === 'updadeStateResponce') {
+                        if (body.id === sessionStorage.getItem('id')) {
+                            sessionStorage.setItem('board', JSON.stringify(body.Board));
+                            currentPlayer = body.turn;
+                            updateYourBoard();
                         }
-                    
+                        else {
+                            updateEnemyBoard(body.Board);
+                        }
+                        updateturn();
+                    } else if (body.type === 'winner') {
+                        if (body.id === sessionStorage.getItem('id')) {
+                            alert('Ви програли!');
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 3000);
+                        }
+                        else {
+                            alert('Ви виграли!');
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 3000);
+                        }
+
+                    }
+
+                });
+                
+                client.publish({
+                    destination: `/topic/${topic}`,
+                    body: JSON.stringify({ type: 'updateState'})
                 });
             }
+
         });
+
+        function updateturn() {
+            if (sessionStorage.getItem("status") === 'host') {
+                if (currentPlayer === 1) {
+                    document.getElementById('turnIndicator').textContent = 'Ваш хід';
+                } else {
+                    document.getElementById('turnIndicator').textContent = `Хід ${sessionStorage.getItem('guest')}`;
+                }
+            } else {
+                if (currentPlayer === 1) {
+                    document.getElementById('turnIndicator').textContent = `Хід ${sessionStorage.getItem('host')}`;
+                } else {
+                    document.getElementById('turnIndicator').textContent = 'Ваш хід';
+                }
+
+            }
+        }
 
 
         function updateYourBoard() {
             const boardId = 'board1';
-            
+
             const boardArray = JSON.parse(sessionStorage.getItem('board'));
 
             const board = document.getElementById(boardId);
@@ -159,7 +188,7 @@
             });
         }
 
-        function updateEnemyBoard(boardArray){
+        function updateEnemyBoard(boardArray) {
             const board = document.getElementById('board2');
             console.log(boardArray);
             boardArray.forEach((row, rowIndex) => {
@@ -170,28 +199,30 @@
                         cellDiv.classList.add('miss');
                     } else if (cell === 'X') {
                         cellDiv.classList.add('damage');
-                    } else  {
+                    } else {
                         cellDiv.classList.add('water');
                     }
                 }
-            );
+                );
             });
         }
         function createYourBoard() {
             const boardId = 'board1';
-            
+
             const boardArray = JSON.parse(sessionStorage.getItem('board'));
 
             const board = document.getElementById(boardId);
             boardArray.forEach((row, rowIndex) => {
-                row.forEach((cell, colIndex) => {
+                row.split("").forEach((cell, colIndex) => {
                     const cellDiv = document.createElement('div');
                     cellDiv.classList.add('cell');
                     if (cell === 'S') {
                         cellDiv.classList.add('ship');
+                    } else if (cell === 'X') {
+                        cellDiv.classList.add('damage');
                     } else if (cell === ' ') {
                         cellDiv.classList.add('water');
-                    } else if (cell === 'X') {
+                    } else if (cell === 'O') {
                         cellDiv.classList.add('miss');
                     }
                     board.appendChild(cellDiv);
@@ -208,11 +239,11 @@
                 cell.classList.add('water');
                 cell.addEventListener('click', () => {
                     const topic = sessionStorage.getItem('topic');
-                    if((currentPlayer === 1 && sessionStorage.getItem('status') === 'host') || (currentPlayer === 2 && sessionStorage.getItem('status') === 'guest')){
-                        if(!cell.classList.contains('damage') && !cell.classList.contains('miss')){
+                    if ((currentPlayer === 1 && sessionStorage.getItem('status') === 'host') || (currentPlayer === 2 && sessionStorage.getItem('status') === 'guest')) {
+                        if (!cell.classList.contains('damage') && !cell.classList.contains('miss')) {
                             client.publish({
                                 destination: `/topic/${topic}`,
-                                body: JSON.stringify({type: 'Move', UserId: sessionStorage.getItem('id'), x: parseInt(cell.dataset.index)%10, y:parseInt(cell.dataset.index)/10})
+                                body: JSON.stringify({ type: 'Move', UserId: sessionStorage.getItem('id'), x: parseInt(cell.dataset.index) % 10, y: parseInt(cell.dataset.index) / 10 })
                             });
                         }
 
@@ -225,22 +256,22 @@
 
 
         function connectWebSocket() {
-            
+
             client.onStompError = (frame) => alert('Помилка з’єднання: ' + frame.headers['message']);
             client.activate();
 
             const host = sessionStorage.getItem('host');
             const guest = sessionStorage.getItem('guest');
-            
-            if(sessionStorage.getItem('status') === 'host'){
+
+            if (sessionStorage.getItem('status') === 'host') {
                 document.getElementById('yourBoard').textContent = `Поле ${host}`;
                 document.getElementById('NoTyourBoard').textContent = `Поле ${guest}`;
             }
-            else{
+            else {
                 document.getElementById('yourBoard').textContent = `Поле ${guest}`;
                 document.getElementById('NoTyourBoard').textContent = `Поле ${host}`;
             }
-           
+            updateturn();
         }
 
         window.onload = connectWebSocket;
